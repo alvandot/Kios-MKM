@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Kiosk Karyawan</string>
+    <string name="admin_disable_warning">Admin perangkat diperlukan untuk mode kiosk. Jika dinonaktifkan, karyawan dapat keluar dari aplikasi kiosk.</string>
+</resources>
