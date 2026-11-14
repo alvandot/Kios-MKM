@@ -30,30 +30,17 @@ import com.kiosk.employee.ui.components.PinDots
 import com.kiosk.employee.ui.components.PinKeypad
 import kotlinx.coroutines.launch
 
-/** First run: admin wajib membuat PIN sebelum kiosk bisa dipakai. */
-@Composable
-fun PinSetupScreen(pinManager: PinManager, onDone: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    PinFormScreen(
-        firstTitle = "Buat PIN Admin",
-        confirmTitle = "Konfirmasi PIN",
-        subtitle = "PIN 6 digit untuk membuka menu admin dan keluar dari mode kiosk",
-        onPinConfirmed = { pin ->
-            scope.launch {
-                pinManager.setPin(pin)
-                onDone()
-            }
-        },
-    )
-}
-
-/** Ganti PIN admin dari menu admin. */
+/**
+ * Ganti PIN admin dari menu admin.
+ *
+ * PIN awal tidak dibuat di sini: perangkat yang sudah di-provisioning hanya bisa
+ * menerima PIN dari provisioning ADB (ProvisioningReceiver), agar karyawan tidak
+ * dapat mengklaim menu admin.
+ */
 @Composable
 fun ChangePinScreen(pinManager: PinManager, onDone: () -> Unit) {
     val scope = rememberCoroutineScope()
     PinFormScreen(
-        firstTitle = "Ganti PIN Admin",
-        confirmTitle = "Konfirmasi PIN Baru",
         subtitle = "Masukkan PIN baru 6 digit, lalu ulangi untuk konfirmasi",
         onPinConfirmed = { pin ->
             scope.launch {
@@ -66,8 +53,6 @@ fun ChangePinScreen(pinManager: PinManager, onDone: () -> Unit) {
 
 @Composable
 private fun PinFormScreen(
-    firstTitle: String,
-    confirmTitle: String,
     subtitle: String,
     onPinConfirmed: (String) -> Unit,
 ) {
@@ -109,7 +94,7 @@ private fun PinFormScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = if (stage == 1) firstTitle else confirmTitle,
+            text = if (stage == 1) "Ganti PIN Admin" else "Konfirmasi PIN Baru",
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(6.dp))

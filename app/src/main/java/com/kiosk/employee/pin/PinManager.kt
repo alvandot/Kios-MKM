@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -49,6 +50,17 @@ class PinManager(private val context: Context) {
         return MessageDigest.isEqual(candidate.toByteArray(), storedHash.toByteArray())
     }
 
+    val selectedPackagesFlow: Flow<Set<String>> = context.kioskDataStore.data
+        .map { prefs -> prefs[KEY_SELECTED_PACKAGES] ?: emptySet() }
+
+    suspend fun selectedPackages(): Set<String> = selectedPackagesFlow.first()
+
+    suspend fun setSelectedPackages(packages: Set<String>) {
+        context.kioskDataStore.edit { prefs ->
+            prefs[KEY_SELECTED_PACKAGES] = packages
+        }
+    }
+
     suspend fun setKioskEnabled(enabled: Boolean) {
         context.kioskDataStore.edit { prefs ->
             prefs[KEY_KIOSK_ENABLED] = enabled
@@ -61,6 +73,7 @@ class PinManager(private val context: Context) {
         private val KEY_PIN_HASH = stringPreferencesKey("pin_hash")
         private val KEY_PIN_SALT = stringPreferencesKey("pin_salt")
         private val KEY_KIOSK_ENABLED = booleanPreferencesKey("kiosk_enabled")
+        private val KEY_SELECTED_PACKAGES = stringSetPreferencesKey("selected_packages")
         private const val DEFAULT_KIOSK_ENABLED = true
         private const val PBKDF2_ITERATIONS = 100_000
         private const val SALT_LENGTH_BYTES = 16
