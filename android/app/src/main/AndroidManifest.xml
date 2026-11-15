@@ -47,6 +47,7 @@
       -->
       <receiver
         android:name=".kiosk.ProvisioningReceiver"
+        android:permission="android.permission.DUMP"
         android:exported="true">
         <intent-filter>
           <action android:name="com.kiosk.employee.action.SET_ADMIN_PIN" />
