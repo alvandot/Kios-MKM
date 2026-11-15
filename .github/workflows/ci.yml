@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test -- --ci
+
+      # Regresi nyata dua kali di repo ini: atribut android:permission pada
+      # ProvisioningReceiver hilang saat refactor, sehingga aplikasi pihak
+      # ketiga bisa mengganti PIN admin lewat broadcast. KDoc tetap mengklaim
+      # proteksi, jadi hanya manifest yang bisa dipercaya.
+      - name: Admin PIN receiver must stay DUMP-protected
+        run: |
+          python3 - <<'PY'
+          import re, sys, pathlib
+
+          manifest = pathlib.Path('android/app/src/main/AndroidManifest.xml').read_text(encoding='utf-8')
+          receiver = re.search(
+              r'<receiver[^>]*android:name="\.kiosk\.ProvisioningReceiver"[^>]*>', manifest
+          )
+          if receiver is None:
+              sys.exit('FAIL: ProvisioningReceiver tidak ditemukan di AndroidManifest.xml')
+          if 'android:permission="android.permission.DUMP"' not in receiver.group(0):
+              sys.exit('FAIL: ProvisioningReceiver kehilangan android:permission="android.permission.DUMP"')
+          print('OK: ProvisioningReceiver dilindungi android.permission.DUMP')
+          PY
