@@ -25,6 +25,10 @@ Dibangun dengan **Kotlin + Jetpack Compose**, memakai pola resmi Google untuk ki
   layar "Perangkat belum dikonfigurasi admin".
 - 🔑 **PIN admin di-hash** dengan PBKDF2WithHmacSHA256 (100 ribu iterasi + salt acak),
   disimpan via DataStore — PIN asli tidak pernah tersimpan.
+- ⏳ **Jeda setelah PIN salah berulang** — 4 percobaan gratis, lalu input dijeda otomatis
+  30 detik → 60 detik → 120 detik (maksimal). Jeda disimpan di disk sehingga menutup
+  aplikasi atau me-restart perangkat tidak menghapusnya; di-reset setelah PIN benar
+  atau PIN diganti.
 - 🧰 **Menu admin**: pilih aplikasi dashboard, keluar/masuk mode kiosk, ganti PIN,
   dan hapus device owner.
 
@@ -101,6 +105,7 @@ Tanpa device owner, app tetap jalan dalam **mode demo screen-pinning**:
 | Tetapkan PIN admin | Saat provisioning: `adb shell am broadcast -a com.kiosk.employee.action.SET_ADMIN_PIN --es pin <6 digit>` |
 | Reset PIN yang lupa | Perintah yang sama dengan tambahan `--ez force true` |
 | Buka Menu Admin | Akses admin tersembunyi → masukkan PIN |
+| PIN salah berulang | Input dijeda otomatis (4 gratis, lalu 30s → 60s → 120s) |
 | Pilih app untuk dashboard | Menu Admin → **Pilih Aplikasi Dashboard** → centang pilihan → **Simpan** |
 | Keluar mode Lock Task | Menu Admin → **Keluar Mode Kiosk** |
 | Masuk Lock Task lagi | Menu Admin → **Masuk Kembali ke Mode Kiosk** |
@@ -145,6 +150,10 @@ app/src/main/java/com/kiosk/employee/
 1. Karyawan boot → kiosk terbuka & `startLockTask()` aktif → tidak ada jalan keluar
    selain key combination (sistem memblokir navigasi lain).
 2. Key combination → layar PIN → salah = tetap terkunci, benar = menu admin.
+   Setelah 4 kali salah, input dijeda 30 detik lalu bertambah (60/120 detik).
 3. Menu admin tetap dalam lock task sampai admin memilih **Keluar Mode Kiosk**.
-4. PIN tidak disimpan dalam bentuk asli (hash + salt), tidak bisa dibaca dari file
+4. **Keluar Mode Kiosk selalu memanggil `stopLockTask()`** — termasuk pada mode demo
+   screen-pinning tanpa device owner, sehingga perangkat tidak tetap terkunci setelah
+   admin keluar.
+5. PIN tidak disimpan dalam bentuk asli (hash + salt), tidak bisa dibaca dari file
    preferences.

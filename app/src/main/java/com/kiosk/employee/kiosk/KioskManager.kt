@@ -95,11 +95,13 @@ object KioskManager {
             } catch (_: Exception) {
                 // Abaikan.
             }
-            try {
-                activity.stopLockTask()
-            } catch (_: Exception) {
-                // Tidak sedang dalam lock task.
-            }
+        }
+        // Selalu jalankan, termasuk pada mode demo screen-pinning (tanpa device owner),
+        // supaya perangkat tidak tetap terkunci setelah admin keluar dari mode kiosk.
+        try {
+            activity.stopLockTask()
+        } catch (_: Exception) {
+            // Tidak sedang dalam lock task.
         }
         showSystemBars(activity)
     }
