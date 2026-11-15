@@ -28,13 +28,16 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.kiosk.employee.kiosk.KioskApps
 import com.kiosk.employee.kiosk.KioskManager
+import com.kiosk.employee.kiosk.KioskAppInfo
 import com.kiosk.employee.pin.PinManager
+import com.kiosk.employee.ui.AdminLockedScreen
 import com.kiosk.employee.ui.AdminScreen
+import com.kiosk.employee.ui.AppSelectionScreen
 import com.kiosk.employee.ui.ChangePinScreen
 import com.kiosk.employee.ui.KioskScreen
 import com.kiosk.employee.ui.PinEntryScreen
-import com.kiosk.employee.ui.PinSetupScreen
 import com.kiosk.employee.ui.theme.KioskTheme
 import kotlinx.coroutines.launch
 
@@ -43,6 +46,7 @@ class MainActivity : ComponentActivity() {
     private val pinManager by lazy { PinManager(applicationContext) }
     private var navController: NavHostController? = null
     private var deviceOwner by mutableStateOf(false)
+    private var installedApps by mutableStateOf<List<KioskAppInfo>>(emptyList())
 
     // State key combination Volume Up + Volume Down (ditahan bersamaan 3 detik).
     private val comboHandler = Handler(Looper.getMainLooper())
@@ -52,17 +56,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // Idempoten: aman dipanggil ulang bila receiver onEnabled sempat terlewat.
-        if (KioskManager.isDeviceOwner(this)) {
-            KioskManager.applyDeviceOwnerSetup(this)
-        }
         deviceOwner = KioskManager.isDeviceOwner(this)
+        refreshInstalledApps()
 
         setContent {
             KioskTheme {
                 KioskApp(
                     pinManager = pinManager,
                     deviceOwner = deviceOwner,
+                    installedApps = installedApps,
+                    onRefreshInstalledApps = { refreshInstalledApps() },
                     onNavControllerReady = { navController = it },
                     onClearDeviceOwner = { clearDeviceOwner() },
                 )
@@ -73,6 +76,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         deviceOwner = KioskManager.isDeviceOwner(this)
+        refreshInstalledApps()
+    }
+
+    private fun refreshInstalledApps() {
+        installedApps = KioskApps.installed(this)
     }
 
     private fun clearDeviceOwner() {
@@ -116,7 +124,7 @@ class MainActivity : ComponentActivity() {
             val task = Runnable {
                 comboRunnable = null
                 comboKeys.clear()
-                openPinEntry()
+                openAdminGate()
             }
             comboRunnable = task
             comboHandler.postDelayed(task, COMBO_HOLD_MS)
@@ -128,12 +136,9 @@ class MainActivity : ComponentActivity() {
         comboRunnable = null
     }
 
-    private fun openPinEntry() {
+    private fun openAdminGate() {
         val controller = navController ?: return
-        // Hanya relevan saat karyawan berada di layar kiosk.
-        if (controller.currentDestination?.route == Routes.KIOSK) {
-            controller.navigate(Routes.PIN_ENTRY) { launchSingleTop = true }
-        }
+        lifecycleScope.launch { openAdminGate(controller, pinManager) }
     }
 
     override fun onDestroy() {
@@ -148,10 +153,21 @@ class MainActivity : ComponentActivity() {
 
 private object Routes {
     const val KIOSK = "kiosk"
-    const val PIN_SETUP = "pin_setup"
     const val PIN_ENTRY = "pin_entry"
     const val ADMIN = "admin"
     const val CHANGE_PIN = "change_pin"
+    const val APP_SELECTION = "app_selection"
+    const val ADMIN_LOCKED = "admin_locked"
+}
+
+/**
+ * Gerbang admin. Bila PIN belum ada, perangkat terkunci di layar informasi —
+ * PIN awal hanya bisa ditetapkan lewat provisioning ADB (ProvisioningReceiver).
+ */
+private suspend fun openAdminGate(navController: NavHostController, pinManager: PinManager) {
+    if (navController.currentDestination?.route != Routes.KIOSK) return
+    val route = if (pinManager.hasPin()) Routes.PIN_ENTRY else Routes.ADMIN_LOCKED
+    navController.navigate(route) { launchSingleTop = true }
 }
 
 private fun navigateClearing(navController: NavHostController, route: String) {
@@ -165,6 +181,8 @@ private fun navigateClearing(navController: NavHostController, route: String) {
 private fun KioskApp(
     pinManager: PinManager,
     deviceOwner: Boolean,
+    installedApps: List<KioskAppInfo>,
+    onRefreshInstalledApps: () -> Unit,
     onNavControllerReady: (NavHostController) -> Unit,
     onClearDeviceOwner: () -> Unit,
 ) {
@@ -177,54 +195,44 @@ private fun KioskApp(
 
     // null = belum ada emission dari DataStore (dipakai untuk menentukan route awal).
     val kioskEnabled: Boolean? by pinManager.kioskEnabledFlow.collectAsState(initial = null)
+    val selectedPackagesValue: Set<String>? by pinManager.selectedPackagesFlow.collectAsState(initial = null)
 
-    var startRoute by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(kioskEnabled) {
-        val enabled = kioskEnabled ?: return@LaunchedEffect
-        if (startRoute == null) {
-            startRoute = when {
-                !pinManager.hasPin() -> Routes.PIN_SETUP
-                enabled -> Routes.KIOSK
-                else -> Routes.ADMIN
-            }
-        }
-        // Terapkan lock task setiap kali status kiosk berubah.
-        if (activity != null) {
-            if (enabled) KioskManager.enterKiosk(activity) else KioskManager.exitKiosk(activity)
-        }
-    }
-
-    val currentStartRoute = startRoute
-    if (currentStartRoute == null) {
+    val enabled = kioskEnabled
+    val selectedPackages = selectedPackagesValue
+    if (enabled == null || selectedPackages == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
     }
+    LaunchedEffect(enabled, selectedPackages, deviceOwner) {
+        KioskManager.applyDeviceOwnerSetup(context, selectedPackages)
+        if (activity != null) {
+            if (enabled) KioskManager.enterKiosk(activity) else KioskManager.exitKiosk(activity)
+        }
+    }
 
-    NavHost(navController = navController, startDestination = currentStartRoute) {
+    NavHost(navController = navController, startDestination = Routes.KIOSK) {
         composable(Routes.KIOSK) {
             BackHandler(enabled = true) {
                 // Layar kiosk adalah tujuan akhir; back tidak boleh menutup app.
             }
             KioskScreen(
-                kioskEnabled = kioskEnabled == true,
-                deviceOwner = deviceOwner,
-                onRequestPin = {
-                    navController.navigate(Routes.PIN_ENTRY) { launchSingleTop = true }
+                apps = installedApps.filter { it.packageName in selectedPackages },
+                onRequestAdmin = {
+                    scope.launch {
+                        openAdminGate(navController, pinManager)
+                    }
                 },
-                onEnterKiosk = { scope.launch { pinManager.setKioskEnabled(true) } },
-                onOpenAdmin = { navigateClearing(navController, Routes.ADMIN) },
+                onLaunchApp = { packageName ->
+                    KioskApps.launch(context, packageName, deviceOwner && kioskEnabled == true)
+                },
             )
         }
 
-        composable(Routes.PIN_SETUP) {
-            BackHandler(enabled = true) {
-                // Setup PIN wajib diselesaikan pada pemakaian pertama.
-            }
-            PinSetupScreen(
-                pinManager = pinManager,
-                onDone = { navigateClearing(navController, Routes.KIOSK) },
+        composable(Routes.ADMIN_LOCKED) {
+            AdminLockedScreen(
+                onBack = { navigateClearing(navController, Routes.KIOSK) },
             )
         }
 
@@ -252,6 +260,10 @@ private fun KioskApp(
                     scope.launch { pinManager.setKioskEnabled(true) }
                     navigateClearing(navController, Routes.KIOSK)
                 },
+                onManageApps = {
+                    onRefreshInstalledApps()
+                    navController.navigate(Routes.APP_SELECTION) { launchSingleTop = true }
+                },
                 onChangePin = {
                     navController.navigate(Routes.CHANGE_PIN) { launchSingleTop = true }
                 },
@@ -264,6 +276,22 @@ private fun KioskApp(
             ChangePinScreen(
                 pinManager = pinManager,
                 onDone = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.APP_SELECTION) {
+            AppSelectionScreen(
+                apps = installedApps,
+                selectedPackages = selectedPackages,
+                onSave = { packages ->
+                    scope.launch {
+                        val valid = packages.intersect(installedApps.map { it.packageName }.toSet())
+                        pinManager.setSelectedPackages(valid)
+                        KioskManager.applyDeviceOwnerSetup(context, valid)
+                        navigateClearing(navController, Routes.ADMIN)
+                    }
+                },
+                onCancel = { navController.popBackStack() },
             )
         }
     }

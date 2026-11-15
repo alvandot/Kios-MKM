@@ -36,6 +36,7 @@ fun AdminScreen(
     deviceOwner: Boolean,
     onExitKiosk: () -> Unit,
     onEnterKiosk: () -> Unit,
+    onManageApps: () -> Unit,
     onChangePin: () -> Unit,
     onBackToKiosk: () -> Unit,
     onClearDeviceOwner: () -> Unit,
@@ -101,6 +102,9 @@ fun AdminScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(text = "Masuk Kembali ke Mode Kiosk")
+        }
+        OutlinedButton(onClick = onManageApps, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "Pilih Aplikasi Dashboard")
         }
         OutlinedButton(onClick = onChangePin, modifier = Modifier.fillMaxWidth()) {
             Text(text = "Ganti PIN Admin")

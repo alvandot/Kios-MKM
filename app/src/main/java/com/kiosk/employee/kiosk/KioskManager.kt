@@ -33,12 +33,21 @@ object KioskManager {
      * whitelist paket untuk lock task dan jadikan aplikasi ini HOME persisten
      * sehingga perangkat otomatis membuka kiosk saat boot.
      */
-    fun applyDeviceOwnerSetup(context: Context) {
+    fun applyDeviceOwnerSetup(context: Context, selectedPackages: Set<String> = emptySet()) {
         if (!isDeviceOwner(context)) return
         val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val admin = ComponentName(context, KioskDeviceAdminReceiver::class.java)
+        val installedPackages = KioskApps.installed(context).mapTo(mutableSetOf()) { it.packageName }
+        val allowedPackages = selectedPackages.intersect(installedPackages) + context.packageName
 
-        dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+        dpm.setLockTaskPackages(admin, allowedPackages.toTypedArray())
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            dpm.setLockTaskFeatures(
+                admin,
+                DevicePolicyManager.LOCK_TASK_FEATURE_HOME or
+                    DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS,
+            )
+        }
 
         val homeFilter = IntentFilter(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
@@ -86,11 +95,13 @@ object KioskManager {
             } catch (_: Exception) {
                 // Abaikan.
             }
-            try {
-                activity.stopLockTask()
-            } catch (_: Exception) {
-                // Tidak sedang dalam lock task.
-            }
+        }
+        // Selalu jalankan, termasuk pada mode demo screen-pinning (tanpa device owner),
+        // supaya perangkat tidak tetap terkunci setelah admin keluar dari mode kiosk.
+        try {
+            activity.stopLockTask()
+        } catch (_: Exception) {
+            // Tidak sedang dalam lock task.
         }
         showSystemBars(activity)
     }
