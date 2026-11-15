@@ -1,5 +1,0 @@
-<resources>
-    <style name="Theme.KioskEmployee" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/kiosk_window_bg</item>
-    </style>
-</resources>
