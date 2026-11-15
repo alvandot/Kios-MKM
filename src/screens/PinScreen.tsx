@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DotBackground } from '../components/DotBackground';
-import { colors, radius, spacing, type as t } from '../theme/tokens';
+import { colors, spacing, type as t } from '../theme/tokens';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 
