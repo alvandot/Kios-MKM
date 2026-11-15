@@ -1,97 +1,87 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Kiosk Employee — Android
 
-# Getting Started
+Aplikasi kiosk lock-down untuk karyawan. Antarmuka React Native 0.88 + TypeScript, seluruh
+kebijakan sistem (Device Owner, lock task, allowlist aplikasi, PIN admin) dijalankan oleh
+native module Kotlin `KioskPolicyModule`.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+**Hanya Android yang didukung** (SDK 26+). Dukungan iOS sudah dihapus dari repo ini.
 
-## Step 1: Start Metro
+## Prasyarat
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- Node.js >= 22.11
+- JDK 17
+- Android SDK (compileSdk 37) + platform-tools (`adb`)
 
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+## Menjalankan
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm install
+npm start          # Metro, biarkan berjalan
+npm run android    # build + install ke emulator/perangkat
 ```
 
-### iOS
+## Build APK
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Gunakan wrapper di dalam `android/`, bukan `gradlew` di root (yang masih Gradle lama):
 
 ```sh
-bundle install
+cd android && ./gradlew assembleDebug
+# hasil: android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Then, and every time you update your native dependencies, run:
+Gradle 9.4.1 dibutuhkan oleh RN 0.88; wrapper sudah menunjuk versi yang benar.
+
+## Provisioning
+
+Perangkat harus dalam keadaan bersih (tanpa akun, tanpa Device Owner lain) sebelum
+provisioning. Aplikasi harus terpasang lebih dulu.
 
 ```sh
-bundle exec pod install
+# 1. Jadikan Device Owner
+adb shell dpm set-device-owner com.kiosk.employee/.KioskDeviceAdminReceiver
+
+# 2. Tetapkan PIN admin 6 digit (butuh android.permission.DUMP — hanya lewat ADB)
+adb shell am broadcast -a com.kiosk.employee.action.SET_ADMIN_PIN \
+  -n com.kiosk.employee/.kiosk.ProvisioningReceiver --es pin 112233
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+`ProvisioningReceiver` diproteksi `android:permission="android.permission.DUMP"`, jadi
+hanya shell/root yang bisa mengirim broadcast ini — aplikasi pihak ketiga tidak dapat
+mengganti PIN admin.
 
-```sh
-# Using npm
-npm run ios
+Untuk melepas Device Owner tanpa factory reset tidak dimungkinkan oleh Android; reset
+perangkat lewat `adb shell am broadcast -a android.intent.action.FACTORY_RESET` atau wipe
+emulator (`emulator -avd <nama> -wipe-data`).
 
-# OR using Yarn
-yarn ios
+## Alur aplikasi
+
+- **Dashboard** — grid aplikasi yang diizinkan; hanya aplikasi terpilih yang bisa dibuka.
+- **Gerbang admin** — 5 tap cepat di pojok kanan atas → layar PIN 6 digit.
+- **Lock Mode** — tab Security/General: aktifkan lock task, pilih aplikasi dashboard, blokir
+  power menu, izin notifikasi.
+- Status bar tetap terlihat namun tidak bisa ditarik; tombol Recents dinonaktifkan, Back dan
+  Home aktif, dan Home kembali ke dashboard.
+
+PIN salah diberi jeda bertingkat (4 percobaan bebas, lalu 30/60/120 detik) yang disimpan di
+DataStore sehingga tidak bisa diakali dengan force-stop.
+
+## Debug
+
+- Dev Menu: <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux); reload cepat: tekan <kbd>R</kbd> dua kali.
+- Log native: `adb logcat -s KIOSKPIN ReactNativeJS`.
+- Pemeriksaan kebijakan: `adb shell dpm dump com.kiosk.employee | grep -i flags`,
+  `adb shell dumpsys activity activities | grep -i locktask`.
+
+## Struktur
+
 ```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+App.tsx                     orkestrasi navigasi + state kiosk
+src/screens/                Dashboard, Lock Mode, PIN, Pilih Aplikasi
+src/native/KioskPolicy.ts   bridge ke native module
+src/theme/tokens.ts         design token (navy/charcoal + aksen merah MKM)
+android/app/src/main/java/com/kiosk/employee/
+  kiosk/KioskPolicyModule.kt      Device Owner, lock task, allowlist, PIN
+  kiosk/PinManager.kt             hash PIN + penalti percobaan
+  kiosk/ProvisioningReceiver.kt   broadcast SET_ADMIN_PIN lewat ADB
+  KioskDeviceAdminReceiver.kt     komponen admin
+```
