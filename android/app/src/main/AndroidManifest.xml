@@ -1,0 +1,58 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+      android:name=".MainApplication"
+      android:label="@string/app_name"
+      android:icon="@mipmap/ic_launcher"
+      android:roundIcon="@mipmap/ic_launcher_round"
+      android:allowBackup="false"
+      android:theme="@style/AppTheme"
+      android:usesCleartextTraffic="${usesCleartextTraffic}"
+      android:supportsRtl="true">
+
+      <activity
+        android:name=".MainActivity"
+        android:label="@string/app_name"
+        android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+        android:launchMode="singleTask"
+        android:windowSoftInputMode="adjustResize"
+        android:exported="true">
+        <!-- Launcher kiosk: tanpa LAUNCHER, Home tidak mengarah ke app ini. -->
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+      </activity>
+
+      <!-- Device admin: syarat agar app bisa menjadi Device Owner lewat ADB. -->
+      <receiver
+        android:name=".KioskDeviceAdminReceiver"
+        android:permission="android.permission.BIND_DEVICE_ADMIN"
+        android:exported="true">
+        <meta-data
+          android:name="android.app.device_admin"
+          android:resource="@xml/kiosk_device_admin" />
+        <intent-filter>
+          <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+        </intent-filter>
+      </receiver>
+
+      <!--
+        Provisioning PIN admin. android:permission DUMP membatasi pengirim
+        broadcast hanya ke shell/root (ADB), sehingga karyawan tidak bisa
+        mengklaim menu admin dengan broadcast palsu.
+      -->
+      <receiver
+        android:name=".kiosk.ProvisioningReceiver"
+        android:permission="android.permission.DUMP"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="com.kiosk.employee.action.SET_ADMIN_PIN" />
+        </intent-filter>
+      </receiver>
+
+    </application>
+</manifest>
