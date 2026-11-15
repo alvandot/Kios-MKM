@@ -33,23 +33,17 @@ export function TabBar({
               onPress={() => onChange(tab.key)}
               style={styles.tab}>
               <Text
-                style={[
-                  styles.glyph,
-                  { color: isActive ? colors.blue : colors.blueMuted },
-                ]}>
+                style={[styles.glyph, isActive ? styles.tintActive : styles.tintIdle]}>
                 {tab.glyph}
               </Text>
               <Text
-                style={[
-                  styles.label,
-                  { color: isActive ? colors.blue : colors.blueMuted },
-                ]}>
+                style={[styles.label, isActive ? styles.tintActive : styles.tintIdle]}>
                 {tab.label}
               </Text>
               <View
                 style={[
                   styles.underline,
-                  { backgroundColor: isActive ? colors.blue : 'transparent' },
+                  isActive ? styles.underlineActive : styles.underlineIdle,
                 ]}
               />
             </Pressable>
@@ -67,6 +61,10 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 0 },
   glyph: { fontSize: 17 },
   label: { fontSize: t.label.fontSize - 1, fontWeight: '700', letterSpacing: 1 },
+  tintActive: { color: colors.blue },
+  tintIdle: { color: colors.blueMuted },
   underline: { height: 3, alignSelf: 'stretch', borderRadius: 2, marginTop: 8 },
+  underlineActive: { backgroundColor: colors.blue },
+  underlineIdle: { backgroundColor: 'transparent' },
   divider: { height: 1, backgroundColor: colors.border },
 });
