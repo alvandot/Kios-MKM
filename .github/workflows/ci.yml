@@ -53,3 +53,38 @@ jobs:
               sys.exit('FAIL: ProvisioningReceiver kehilangan android:permission="android.permission.DUMP"')
           print('OK: ProvisioningReceiver dilindungi android.permission.DUMP')
           PY
+
+  build:
+    name: Gradle assembleDebug
+    runs-on: ubuntu-latest
+    needs: check
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # assembleDebug meng-bundle JS, jadi node_modules wajib ada sebelum Gradle jalan.
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+        working-directory: android
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
