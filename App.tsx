@@ -114,6 +114,7 @@ function App() {
       if (result.ok) {
         setPinError(null);
         setLockedSeconds(0);
+        refreshPolicy(); // provisioning ADB bisa terjadi saat app sudah berjalan
         setRoute('settings');
         return;
       }
@@ -124,7 +125,7 @@ function App() {
         setPinError('PIN salah');
       }
     },
-    [pendingPin, route],
+    [pendingPin, refreshPolicy, route],
   );
 
   const openAdminGate = useCallback(() => {
