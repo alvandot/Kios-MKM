@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles -- nilai breakpoint responsif */
 import React, { useCallback, useRef, useState } from 'react';
 import {
   Image,
@@ -8,9 +9,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DotBackground } from '../components/DotBackground';
+import { Backdrop } from '../components/Backdrop';
+import { GlassPanel } from '../components/Glass';
 import { KioskApp, KioskPolicy } from '../native/KioskPolicy';
 import { colors, radius, spacing, type as t } from '../theme/tokens';
+import { useLayout } from '../theme/useLayout';
 
 const TAP_COUNT = 5;
 const TAP_WINDOW_MS = 1500;
@@ -24,6 +27,7 @@ export function DashboardScreen({
   onRequestAdmin: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const layout = useLayout();
   const taps = useRef(0);
   const lastTapAt = useRef(0);
   const [pressed, setPressed] = useState<string | null>(null);
@@ -47,9 +51,13 @@ export function DashboardScreen({
     }
   }, []);
 
+  const tileGap = spacing.md;
+  const tileSide =
+    layout.cols === 2 ? '48%' : layout.cols === 3 ? '31%' : '23%';
+
   return (
     <View style={styles.root}>
-      <DotBackground />
+      <Backdrop />
 
       {/* Zona gerbang admin di pojok kanan atas. */}
       <Pressable
@@ -61,11 +69,21 @@ export function DashboardScreen({
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + spacing.lg },
+          {
+            paddingTop: insets.top + (layout.compact ? 12 : spacing.lg),
+            paddingHorizontal: layout.pagePad,
+          },
         ]}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>KIOSK KARYAWAN</Text>
-          <Text style={styles.title}>
+          <Image
+            source={require('../../assets/mkm-logo.png')}
+            style={[styles.logo, { width: layout.compact ? 110 : 150 }]}
+            resizeMode="contain"
+          />
+          <Text style={[styles.eyebrow, { fontSize: layout.compact ? 10 : 11 }]}>
+            KIOSK KARYAWAN
+          </Text>
+          <Text style={[styles.title, { fontSize: layout.heroSize }]}>
             Pilih <Text style={styles.titleAccent}>aplikasi</Text>
           </Text>
           <Text style={styles.subtitle}>
@@ -74,25 +92,29 @@ export function DashboardScreen({
         </View>
 
         {apps.length === 0 ? (
-          <View style={styles.emptyCard}>
+          <GlassPanel style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>Belum ada aplikasi dipilih</Text>
             <Text style={styles.emptyText}>
               Admin perlu memilih aplikasi lewat Menu Admin terlebih dahulu.
             </Text>
-          </View>
+          </GlassPanel>
         ) : (
-          <View style={styles.grid}>
+          <View style={[styles.grid, { gap: tileGap }]}>
             {apps.map(app => (
               <Pressable
                 key={app.packageName}
                 onPress={() => openApp(app.packageName)}
                 style={({ pressed: isPressed }) => [
                   styles.tile,
+                  { width: tileSide },
                   (isPressed || pressed === app.packageName) && styles.tilePressed,
                 ]}>
                 <Image
                   source={{ uri: `data:image/png;base64,${app.icon}` }}
-                  style={styles.tileIcon}
+                  style={[
+                    styles.tileIcon,
+                    { width: layout.compact ? 52 : 64, height: layout.compact ? 52 : 64 },
+                  ]}
                 />
                 <Text style={styles.tileLabel} numberOfLines={2}>
                   {app.label}
@@ -109,28 +131,32 @@ export function DashboardScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   gate: { position: 'absolute', top: 0, right: 0, width: 96, height: 96, zIndex: 10 },
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  content: { paddingBottom: spacing.xxl },
 
   header: { marginBottom: spacing.lg, gap: 6 },
-  eyebrow: { ...t.label, color: colors.blueMuted },
+  logo: { height: 54, marginBottom: spacing.sm, alignSelf: 'flex-start' },
+  eyebrow: { ...t.label, color: colors.redMuted },
   title: { ...t.hero, color: colors.textOnDark },
-  titleAccent: { color: colors.blue },
-  subtitle: { ...t.body, color: colors.blueMuted },
+  titleAccent: { color: colors.red },
+  subtitle: { ...t.body, color: colors.textMuted },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
   tile: {
-    width: 160,
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.card,
-    backgroundColor: colors.bgAlt,
+    backgroundColor: colors.glass,
     borderWidth: 1,
-    borderColor: '#23406B',
+    borderColor: colors.glassBorder,
+    overflow: 'hidden',
   },
-  tilePressed: { backgroundColor: '#1C3560', borderColor: colors.blue },
-  tileIcon: { width: 64, height: 64, resizeMode: 'contain' },
+  tilePressed: {
+    backgroundColor: colors.redSoft,
+    borderColor: colors.red,
+  },
+  tileIcon: { resizeMode: 'contain' },
   tileLabel: {
     fontSize: t.cardTitle.fontSize,
     fontWeight: '700',
@@ -138,14 +164,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  emptyCard: {
-    backgroundColor: colors.bgAlt,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: '#23406B',
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
+  emptyCard: { padding: spacing.lg, gap: spacing.sm },
   emptyTitle: { ...t.cardTitle, color: colors.textOnDark },
-  emptyText: { ...t.small, color: colors.blueMuted },
+  emptyText: { ...t.small, color: colors.textMuted },
 });

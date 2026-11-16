@@ -1,5 +1,7 @@
+/* eslint-disable react-native/no-inline-styles -- nilai breakpoint responsif */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,11 +9,14 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DotBackground } from '../components/DotBackground';
+import { Backdrop } from '../components/Backdrop';
+import { GlassPanel } from '../components/Glass';
 import { StatusBanner, SettingRow, InfoCallout } from '../components/Controls';
 import { TabBar, TabKey } from '../components/TabBar';
+import { IconDisplay, IconGear, IconGrid, IconHome, IconLock } from '../components/Icons';
 import { FeatureFlags, KioskPolicy } from '../native/KioskPolicy';
 import { colors, radius, spacing, type as t } from '../theme/tokens';
+import { useLayout } from '../theme/useLayout';
 
 type Props = {
   deviceOwner: boolean;
@@ -23,7 +28,7 @@ type Props = {
   onBackToDashboard: () => void;
 };
 
-/** Halaman pengaturan Lock Mode — mengikuti referensi desain. */
+/** Halaman pengaturan Lock Mode — tema glassmorphism MKM. */
 export function LockModeScreen({
   deviceOwner,
   kioskActive,
@@ -34,6 +39,7 @@ export function LockModeScreen({
   onBackToDashboard,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const layout = useLayout();
   const [tab, setTab] = useState<TabKey>('security');
   const [flags, setFlags] = useState<FeatureFlags>({
     allowNotifications: false,
@@ -58,48 +64,63 @@ export function LockModeScreen({
 
   return (
     <View style={styles.root}>
-      <DotBackground />
+      <Backdrop />
 
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.xl }]}>
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: insets.top + (layout.compact ? 12 : spacing.xl),
+            paddingHorizontal: layout.pagePad,
+          },
+        ]}>
         {/* Hero */}
         <View style={styles.hero}>
+          <Image
+            source={require('../../assets/mkm-logo.png')}
+            style={[styles.logo, { width: layout.compact ? 100 : 140 }]}
+            resizeMode="contain"
+          />
           <View style={styles.heroBadgeRow}>
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeGlyph}>🔒</Text>
+              <IconLock size={16} color={colors.red} />
             </View>
             <Text style={styles.heroLabel}>LOCK MODE</Text>
           </View>
-          <Text style={styles.heroTitle}>
-            Lock it down, <Text style={styles.heroTitleAccent}>keep the PIN</Text>
+          <Text style={[styles.heroTitle, { fontSize: layout.heroSize }]}>
+            Kunci penuh, <Text style={styles.heroTitleAccent}>PIN di tangan</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            Only the 5-tap gesture and your PIN get out
+            Keluar hanya lewat gerbang 5-tap dan PIN admin
           </Text>
         </View>
 
-        {/* Panel putih */}
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Settings</Text>
+        {/* Panel kaca */}
+        <GlassPanel style={styles.panel} radiusOverride={radius.panel}>
+          <Text style={[styles.panelTitle, { fontSize: layout.sectionSize }]}>
+            Pengaturan
+          </Text>
 
           <StatusBanner
             active={deviceOwner}
-            text={deviceOwner ? 'Device Owner Active' : 'Device Owner belum aktif'}
+            text={deviceOwner ? 'Device Owner aktif' : 'Device Owner belum aktif'}
           />
 
-          <TabBar active={tab} onChange={setTab} />
+          <View style={styles.tabWrap}>
+            <TabBar active={tab} onChange={setTab} />
+          </View>
 
           <View style={styles.panelBody}>
             {tab === 'security' ? (
               <View style={styles.card}>
                 <View style={styles.cardHeading}>
-                  <Text style={styles.cardHeadingGlyph}>🔒</Text>
+                  <IconLock size={15} color={colors.red} />
                   <Text style={styles.cardHeadingText}>Lock Mode</Text>
                 </View>
 
                 <SettingRow
-                  title="Enable Lock Mode"
-                  description="Prevent users from exiting the kiosk app. Requires PIN code to exit."
+                  title="Aktifkan Lock Mode"
+                  description="Karyawan tidak bisa keluar dari aplikasi kiosk. Keluar memerlukan PIN admin."
                   value={kioskActive}
                   disabled={busy}
                   onChange={async next => {
@@ -114,30 +135,30 @@ export function LockModeScreen({
 
                 <InfoCallout
                   text={
-                    'Screen pinning enabled: Only 5-tap gesture + PIN code allows exit'
+                    'Screen pinning aktif: hanya gerbang 5-tap + PIN yang bisa keluar'
                   }
                 />
 
                 <SettingRow
                   divider
-                  title="Block Power Menu"
-                  description="Long-press the power button will not show the power menu. On some Samsung/OneUI devices audio may be muted while lock mode is active."
+                  title="Blokir Menu Power"
+                  description="Tekan lama tombol power tidak menampilkan menu power. Di sebagian perangkat Samsung/OneUI audio bisa dibisukan selama lock mode aktif."
                   value={flags.blockPowerMenu}
                   onChange={next => updateFlag({ blockPowerMenu: next })}
                 />
 
                 <SettingRow
                   divider
-                  title="Allow Notifications (NFC)"
-                  description="Enable notification dispatch to allow NFC tag reading in external apps. Note: Android will make the notification panel accessible when this is enabled."
+                  title="Izinkan Notifikasi (NFC)"
+                  description="Izinkan distribusi notifikasi agar pembacaan tag NFC bisa jalan di aplikasi eksternal. Panel notifikasi jadi bisa ditarik bila ini aktif."
                   value={flags.allowNotifications}
                   onChange={next => updateFlag({ allowNotifications: next })}
                 />
 
                 <SettingRow
                   divider
-                  title="Show System Info Bar"
-                  description="Show clock, battery and connectivity indicators in the status bar."
+                  title="Tampilkan Baris Info Sistem"
+                  description="Tampilkan jam, baterai, dan indikator konektivitas di status bar."
                   value={flags.showSystemInfo}
                   onChange={next => updateFlag({ showSystemInfo: next })}
                 />
@@ -147,24 +168,24 @@ export function LockModeScreen({
             {tab === 'general' ? (
               <View style={styles.card}>
                 <View style={styles.cardHeading}>
-                  <Text style={styles.cardHeadingGlyph}>⌂</Text>
-                  <Text style={styles.cardHeadingText}>General</Text>
+                  <IconHome size={15} color={colors.red} />
+                  <Text style={styles.cardHeadingText}>Umum</Text>
                 </View>
                 <SettingRow
-                  title="Dashboard apps"
-                  description="Choose which applications are shown on the kiosk dashboard."
+                  title="Aplikasi dashboard"
+                  description="Pilih aplikasi yang tampil di dashboard kiosk."
                   onPress={onOpenAppSelection}
                 />
                 <SettingRow
                   divider
-                  title="Admin PIN"
-                  description="PIN required to leave the kiosk and open this settings page."
+                  title="PIN Admin"
+                  description="PIN untuk keluar dari kiosk dan membuka halaman ini."
                   onPress={onChangePin}
                 />
                 <SettingRow
                   divider
-                  title="Back to dashboard"
-                  description="Return to the kiosk launcher without leaving lock mode."
+                  title="Kembali ke dashboard"
+                  description="Kembali ke launcher kiosk tanpa meninggalkan lock mode."
                   onPress={onBackToDashboard}
                 />
               </View>
@@ -173,13 +194,13 @@ export function LockModeScreen({
             {tab === 'dashboard' ? (
               <View style={styles.card}>
                 <View style={styles.cardHeading}>
-                  <Text style={styles.cardHeadingGlyph}>▦</Text>
+                  <IconGrid size={15} color={colors.red} />
                   <Text style={styles.cardHeadingText}>Dashboard</Text>
                 </View>
                 <Text style={styles.paragraph}>
-                  Applications shown to employees are managed from General →
-                  Dashboard apps. Only checked applications appear on the kiosk
-                  dashboard and can be launched while lock mode is active.
+                  Aplikasi yang tampil untuk karyawan dikelola lewat Umum →
+                  Aplikasi dashboard. Hanya aplikasi yang dicentang yang muncul
+                  di dashboard dan bisa dibuka selama lock mode aktif.
                 </Text>
                 <Pressable style={styles.primaryButton} onPress={onOpenAppSelection}>
                   <Text style={styles.primaryButtonText}>Pilih Aplikasi Dashboard</Text>
@@ -190,14 +211,14 @@ export function LockModeScreen({
             {tab === 'display' ? (
               <View style={styles.card}>
                 <View style={styles.cardHeading}>
-                  <Text style={styles.cardHeadingGlyph}>▭</Text>
-                  <Text style={styles.cardHeadingText}>Display</Text>
+                  <IconDisplay size={15} color={colors.red} />
+                  <Text style={styles.cardHeadingText}>Tampilan</Text>
                 </View>
                 <Text style={styles.paragraph}>
-                  Status bar, navigation bar and notification panel behaviour is
-                  controlled by the Lock Mode flags above. Recents/Overview stays
-                  disabled in lock mode, so the navigation bar only shows Back and
-                  Home.
+                  Perilaku status bar, navigation bar, dan panel notifikasi
+                  dikontrol oleh flag Lock Mode di tab Keamanan. Recents/Overview
+                  selalu mati di lock mode, sehingga navigation bar hanya
+                  menyisakan Back dan Home.
                 </Text>
               </View>
             ) : null}
@@ -205,12 +226,12 @@ export function LockModeScreen({
             {tab === 'advanced' ? (
               <View style={styles.card}>
                 <View style={styles.cardHeading}>
-                  <Text style={styles.cardHeadingGlyph}>⚙</Text>
-                  <Text style={styles.cardHeadingText}>Advanced</Text>
+                  <IconGear size={15} color={colors.red} />
+                  <Text style={styles.cardHeadingText}>Lanjutan</Text>
                 </View>
                 <Text style={styles.paragraph}>
-                  Removing Device Owner detaches this device from kiosk mode
-                  permanently. Re-provisioning requires ADB.
+                  Menghapus Device Owner melepaskan perangkat dari mode kiosk
+                  secara permanen. Provisioning ulang memerlukan ADB.
                 </Text>
                 <Pressable
                   style={styles.dangerButton}
@@ -243,7 +264,7 @@ export function LockModeScreen({
               </View>
             ) : null}
           </View>
-        </View>
+        </GlassPanel>
       </ScrollView>
     </View>
   );
@@ -254,42 +275,43 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl },
 
   hero: { alignItems: 'center', paddingHorizontal: spacing.lg, gap: 10 },
+  logo: { height: 44, marginBottom: 2 },
   heroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   heroBadge: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.redSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(250,20,17,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroBadgeGlyph: { fontSize: 16 },
-  heroLabel: { ...t.label, color: '#8FB4F5' },
+  heroLabel: { ...t.label, color: colors.redMuted },
   heroTitle: { ...t.hero, color: colors.white, textAlign: 'center' },
-  heroTitleAccent: { color: colors.blue },
-  heroSubtitle: { ...t.body, color: '#9DB1CE', textAlign: 'center' },
+  heroTitleAccent: { color: colors.red },
+  heroSubtitle: { ...t.body, color: colors.textMuted, textAlign: 'center' },
 
-  panel: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.white,
-    borderTopLeftRadius: radius.panel,
-    borderTopRightRadius: radius.panel,
-    overflow: 'hidden',
-    paddingTop: spacing.lg,
-  },
+  panel: { marginTop: spacing.xl },
   panelTitle: {
     ...t.section,
-    color: colors.textNavy,
+    color: colors.textOnDark,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
-  panelBody: { backgroundColor: colors.paleBlue, padding: spacing.md },
-
-  card: {
-    backgroundColor: colors.white,
+  tabWrap: { paddingHorizontal: spacing.md },
+  panelBody: {
+    backgroundColor: colors.glassDeep,
+    margin: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.md,
     borderRadius: radius.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.glassBorder,
+  },
+
+  card: {
+    borderRadius: radius.card,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
@@ -300,13 +322,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.sm,
   },
-  cardHeadingGlyph: { fontSize: 15 },
-  cardHeadingText: { ...t.cardTitle, color: colors.textNavy },
+  cardHeadingText: { ...t.cardTitle, color: colors.textOnDark },
 
   paragraph: { ...t.body, color: colors.textMuted, lineHeight: 20, paddingVertical: 8 },
 
   primaryButton: {
-    backgroundColor: colors.blue,
+    backgroundColor: colors.red,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -316,15 +337,15 @@ const styles = StyleSheet.create({
 
   dangerButton: {
     borderWidth: 1,
-    borderColor: '#E0A0A0',
-    backgroundColor: '#FDF1F1',
+    borderColor: 'rgba(250,20,17,0.5)',
+    backgroundColor: colors.redSoft,
     borderRadius: 12,
     paddingVertical: 13,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     marginTop: spacing.md,
   },
-  dangerButtonText: { color: '#B3261E', fontWeight: '700', fontSize: 15 },
+  dangerButtonText: { color: colors.redMuted, fontWeight: '700', fontSize: 15 },
 
   ghostButton: {
     paddingVertical: 13,
@@ -335,11 +356,13 @@ const styles = StyleSheet.create({
 
   confirmBox: {
     marginTop: spacing.sm,
-    backgroundColor: '#FDF1F1',
+    backgroundColor: colors.redSoft,
     borderRadius: 12,
     padding: spacing.md,
     gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(250,20,17,0.35)',
   },
-  confirmText: { ...t.small, color: '#8C2F2A', lineHeight: 18 },
+  confirmText: { ...t.small, color: colors.redMuted, lineHeight: 18 },
   confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
 });

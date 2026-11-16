@@ -1,7 +1,10 @@
+/* eslint-disable react-native/no-inline-styles -- nilai breakpoint responsif */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { DotBackground } from '../components/DotBackground';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Backdrop } from '../components/Backdrop';
+import { IconBackspace, IconLock } from '../components/Icons';
 import { colors, spacing, type as t } from '../theme/tokens';
+import { useLayout } from '../theme/useLayout';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 
@@ -27,6 +30,7 @@ export function PinScreen({
   lockedSeconds: number;
 }) {
   const [pin, setPin] = useState('');
+  const layout = useLayout();
   const locked = lockedSeconds > 0;
 
   useEffect(() => {
@@ -58,15 +62,24 @@ export function PinScreen({
     [locked, onSubmit, pinLength],
   );
 
+  const keySide = layout.compact ? 62 : 76;
+
   return (
     <View style={styles.root}>
-      <DotBackground />
+      <Backdrop />
       <View style={styles.content}>
+        <Image
+          source={require('../../assets/mkm-logo.png')}
+          style={[styles.logo, { width: layout.compact ? 96 : 130 }]}
+          resizeMode="contain"
+        />
         <View style={styles.badge}>
-          <Text style={styles.badgeGlyph}>🔒</Text>
+          <IconLock size={layout.compact ? 20 : 24} color={colors.red} />
         </View>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={[styles.title, { fontSize: layout.sectionSize }]}>{title}</Text>
+        <Text style={[styles.subtitle, { maxWidth: layout.compact ? 260 : 320 }]}>
+          {subtitle}
+        </Text>
 
         <View style={styles.dots}>
           {Array.from({ length: pinLength }).map((_, index) => (
@@ -87,21 +100,29 @@ export function PinScreen({
           <View style={styles.warnSpacer} />
         )}
 
-        <View style={styles.keypad}>
+        <View style={[styles.keypad, { width: 3 * keySide + 24 }]}>
           {KEYS.map((key, index) =>
             key === '' ? (
-              <View key={`gap-${index}`} style={styles.key} />
+              <View key={`gap-${index}`} style={[styles.key, { width: keySide, height: keySide }]} />
             ) : (
               <Pressable
                 key={key}
                 accessibilityRole="button"
+                accessibilityLabel={key === '⌫' ? 'Hapus' : key}
                 onPress={() => press(key)}
                 style={({ pressed }) => [
                   styles.key,
+                  { width: keySide, height: keySide },
                   pressed && !locked && styles.keyPressed,
                   locked && styles.keyDisabled,
                 ]}>
-                <Text style={styles.keyText}>{key}</Text>
+                {key === '⌫' ? (
+                  <IconBackspace size={layout.compact ? 20 : 24} color={colors.textOnDark} />
+                ) : (
+                  <Text style={[styles.keyText, { fontSize: layout.compact ? 20 : 24 }]}>
+                    {key}
+                  </Text>
+                )}
               </Pressable>
             ),
           )}
@@ -120,23 +141,24 @@ export function PinScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  logo: { height: 40, marginBottom: spacing.md },
   badge: {
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.redSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(250,20,17,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  badgeGlyph: { fontSize: 24 },
-  title: { ...t.section, color: colors.white },
+  title: { ...t.section, color: colors.textOnDark },
   subtitle: {
     ...t.body,
-    color: '#9DB1CE',
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 6,
-    maxWidth: 320,
   },
 
   dots: { flexDirection: 'row', gap: 12, marginTop: spacing.xl },
@@ -145,35 +167,32 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#3A5680',
+    borderColor: 'rgba(255,255,255,0.25)',
   },
-  dotFilled: { backgroundColor: colors.blue, borderColor: colors.blue },
+  dotFilled: { backgroundColor: colors.red, borderColor: colors.red },
 
-  warn: { ...t.small, color: '#FF9C9C', marginTop: spacing.md },
+  warn: { ...t.small, color: colors.redMuted, marginTop: spacing.md },
   warnSpacer: { height: 28 },
 
   keypad: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: 3 * 76 + 24,
     justifyContent: 'center',
     gap: 12,
     marginTop: spacing.md,
   },
   key: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgAlt,
+    backgroundColor: colors.glass,
     borderWidth: 1,
-    borderColor: '#23406B',
+    borderColor: colors.glassBorder,
   },
-  keyPressed: { backgroundColor: colors.blue, borderColor: colors.blue },
+  keyPressed: { backgroundColor: colors.redSoft, borderColor: colors.red },
   keyDisabled: { opacity: 0.4 },
-  keyText: { fontSize: 24, fontWeight: '600', color: colors.textOnDark },
+  keyText: { fontWeight: '600', color: colors.textOnDark },
 
   cancel: { marginTop: spacing.lg, padding: spacing.sm },
-  cancelText: { ...t.body, color: colors.blueMuted, fontWeight: '700' },
+  cancelText: { ...t.body, color: colors.textMuted, fontWeight: '700' },
 });

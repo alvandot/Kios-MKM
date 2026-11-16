@@ -1,40 +1,44 @@
 /**
- * Design token dari referensi desain "Lock Mode":
- * latar navy gelap, aksen biru terang, panel putih membulat.
+ * Design token tema glassmorphism MKM:
+ * latar charcoal gelap (elips hitam logo), aksen merah MKM,
+ * permukaan kaca translusen dengan border cahaya.
  */
 export const colors = {
-  // Latar navy
-  bg: '#101D34',
-  bgDeep: '#0B1526',
-  bgAlt: '#152747',
+  // Latar gelap
+  bg: '#0A0C11',
+  bgDeep: '#060709',
+  bgAlt: 'rgba(255,255,255,0.06)',
 
-  // Aksen
-  blue: '#287BFF',
-  blueSoft: '#E8F0FF',
-  blueMuted: '#7C93B8',
-  paleBlue: '#F4F7FC',
+  // Aksen merah MKM (diproba dari logo)
+  red: '#FA1411',
+  redSoft: 'rgba(250,20,17,0.16)',
+  redMuted: '#FF6B62',
 
-  // Panel
-  white: '#FFFFFF',
-  border: '#D8E1EE',
+  // Kaca
+  glass: 'rgba(255,255,255,0.07)',
+  glassStrong: 'rgba(255,255,255,0.11)',
+  glassBorder: 'rgba(255,255,255,0.14)',
+  glassHighlight: 'rgba(255,255,255,0.22)',
+  glassDeep: 'rgba(10,12,17,0.55)',
 
   // Teks
-  textNavy: '#12203A',
-  textMuted: '#6B7F9E',
-  textOnDark: '#EAF1FF',
+  white: '#FFFFFF',
+  textOnDark: '#F4F6FA',
+  textMuted: '#9AA3B2',
+  textNavy: '#F4F6FA',
 
   // Status
-  green: '#22A06B',
-  greenBg: '#E9F7EF',
-  greenBorder: '#9FE0BC',
-  grayTrack: '#C9D4E3',
+  green: '#3DDC97',
+  greenBg: 'rgba(61,220,151,0.12)',
+  greenBorder: 'rgba(61,220,151,0.35)',
+  grayTrack: 'rgba(255,255,255,0.18)',
 } as const;
 
 export const radius = {
   panel: 24,
-  card: 20,
+  card: 18,
   pill: 999,
-  tab: 10,
+  tab: 12,
 } as const;
 
 export const spacing = {
@@ -48,9 +52,8 @@ export const spacing = {
 
 export const type = {
   hero: { fontSize: 34, fontWeight: '800' },
-  heroAccent: { fontSize: 34, fontWeight: '800' },
   section: { fontSize: 22, fontWeight: '700' },
-  cardTitle: { fontSize: 17, fontWeight: '700' },
+  cardTitle: { fontSize: 16, fontWeight: '700' },
   body: { fontSize: 14, fontWeight: '400' },
   small: { fontSize: 12.5, fontWeight: '400' },
   label: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6 },
