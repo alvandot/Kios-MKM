@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, type as t } from '../theme/tokens';
 
-/** Toggle biru dengan gaya referensi desain. */
+/** Toggle merah MKM di atas permukaan kaca. */
 export function Toggle({
   value,
   onChange,
@@ -20,7 +20,7 @@ export function Toggle({
       onPress={() => onChange(!value)}
       style={[
         styles.track,
-        { backgroundColor: value ? colors.blue : colors.grayTrack },
+        { backgroundColor: value ? colors.red : colors.grayTrack },
         disabled && styles.disabled,
       ]}>
       <View style={[styles.knob, value ? styles.knobOn : styles.knobOff]} />
@@ -59,7 +59,9 @@ export function SettingRow({
         {description ? <Text style={styles.description}>{description}</Text> : null}
       </View>
       {onPress ? (
-        <Text style={styles.chevron}>›</Text>
+        <View style={styles.chevron}>
+          <IconChevronGlyph />
+        </View>
       ) : (
         <Toggle
           value={value ?? false}
@@ -80,7 +82,16 @@ export function SettingRow({
   return body;
 }
 
-/** Callout info biru muda dengan garis aksen di kiri. */
+/** Chevron kanan monoline. */
+function IconChevronGlyph() {
+  return (
+    <View style={styles.chevBox}>
+      <View style={styles.chev} />
+    </View>
+  );
+}
+
+/** Callout info dengan garis aksen merah di kiri. */
 export function InfoCallout({ text }: { text: string }) {
   return (
     <View style={styles.callout}>
@@ -90,7 +101,7 @@ export function InfoCallout({ text }: { text: string }) {
   );
 }
 
-/** Banner status hijau (mis. Device Owner Active). */
+/** Banner status (mis. Device Owner Active) di atas kaca. */
 export function StatusBanner({ text, active }: { text: string; active: boolean }) {
   return (
     <View
@@ -98,12 +109,12 @@ export function StatusBanner({ text, active }: { text: string; active: boolean }
         styles.banner,
         active ? styles.bannerActive : styles.bannerInactive,
       ]}>
+      <View style={[styles.bannerDot, { backgroundColor: active ? colors.green : colors.red }]} />
       <Text
         style={[
           styles.bannerText,
-          { color: active ? colors.green : colors.textMuted },
+          { color: active ? colors.green : colors.redMuted },
         ]}>
-        {active ? '✓  ' : '!  '}
         {text}
       </Text>
     </View>
@@ -136,38 +147,53 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.glassBorder,
   },
-  chevron: { fontSize: 24, color: colors.blueMuted, paddingHorizontal: 4 },
+  chevron: { paddingHorizontal: 4 },
+  chevBox: { width: 14, height: 14 },
+  chev: {
+    width: 8,
+    height: 8,
+    borderRightWidth: 1.8,
+    borderBottomWidth: 1.8,
+    borderColor: colors.textMuted,
+    transform: [{ rotate: '-45deg' }],
+    marginLeft: 2,
+    marginTop: 2,
+  },
   rowText: { flex: 1, gap: 6 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { fontSize: t.cardTitle.fontSize, fontWeight: '700', color: colors.textNavy },
+  title: { fontSize: t.cardTitle.fontSize, fontWeight: '700', color: colors.textOnDark },
   description: { fontSize: t.body.fontSize, color: colors.textMuted, lineHeight: 19 },
 
   callout: {
     flexDirection: 'row',
-    backgroundColor: colors.blueSoft,
+    backgroundColor: colors.redSoft,
     borderRadius: 10,
     overflow: 'hidden',
     marginTop: 4,
   },
-  calloutAccent: { width: 4, backgroundColor: colors.blue },
+  calloutAccent: { width: 4, backgroundColor: colors.red },
   calloutText: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 12,
     fontSize: t.small.fontSize,
-    color: '#2A4B82',
+    color: colors.textOnDark,
     lineHeight: 17,
   },
 
   banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     borderRadius: 12,
     borderWidth: 1,
     paddingVertical: 12,
-    alignItems: 'center',
   },
   bannerActive: { backgroundColor: colors.greenBg, borderColor: colors.greenBorder },
-  bannerInactive: { backgroundColor: colors.paleBlue, borderColor: colors.border },
+  bannerInactive: { backgroundColor: colors.redSoft, borderColor: 'rgba(250,20,17,0.4)' },
+  bannerDot: { width: 8, height: 8, borderRadius: 4 },
   bannerText: { fontSize: 14, fontWeight: '700' },
 });
